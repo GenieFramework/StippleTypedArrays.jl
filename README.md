@@ -6,6 +6,12 @@ Typical use cases are buffers that are used, e.g. for downloading files or proce
 
 StippleTypedArrays introduces an Vector wrapper `TypedArray` that can be used in type declarations for app variables.
 
+Caveat:
+
+On the backend side all handlers work as normal. However, on the client side javascript cannot watch typed arrays, so any change of the buffer on the client side will not be automatically synchronised.
+
+If you want to sync your data to the server, you have to do it by callin `this.push('data')` after updating the value.
+
 ## Demo App
 ```julia
 using Stipple, Stipple.ReactiveTools
