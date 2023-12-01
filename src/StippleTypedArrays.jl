@@ -78,11 +78,18 @@ js_revive_typedArray = """
 
 function deps()
     [
-        script("\n", [
-            # "    $atype.prototype['toJSON'] = function () { return $(startswith(atype, "Big") ? "this.toString().split(',')" : "Array.from(this)") };\n"
-            "    $atype.prototype['toJSON'] = function () { this.toString() };\n"
-            for atype in values(type_dict)
-        ])
+        script(
+            "\n",
+            [
+                "    $atype.prototype['toJSON'] = function () { return $(startswith(atype, "Big") ? "this.toString().split(',')" : "Array.from(this)") };\n"
+                for atype in values(type_dict)
+            ],
+            [
+                """
+                BigInt.prototype['toJSON'] = function () { return this.toString() }
+                """
+            ]
+        )
         script(Stipple.js_add_reviver(js_revive_typedArray))
     ]
 end
