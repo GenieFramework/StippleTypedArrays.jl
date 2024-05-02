@@ -1,5 +1,9 @@
 module StippleTypedArrays
 
+using Base64
+
+const BASE64ENCODING = Ref(false)
+
 using Stipple
 
 export TypedArray
@@ -30,16 +34,16 @@ Base.popfirst!(x::TypedArray, args...) = Base.popfirst!(x.array, args...)
 Base.popat!(x::TypedArray, args...) = Base.pop!(x.array, args...)
 
 Base.convert(::Type{TypedArray}, v::AbstractVector{T}) where T = TypedArray{T}(convert(Vector{T}, v))
-Base.convert(::Type{T}, ta::TypedArray) where T <: Union{AbstractVector, TypedArray}  = convert(T, ta.array)
+Base.convert(::Type{T}, ta::TypedArray) where T <: Union{AbstractVector, TypedArray}  = convert(T, BASE64ENCODING[] ? base64encode(ta.array) : ta.array)
 Base.convert(::Type{TypedArray{T1}}, v::AbstractVector{T2}) where {T1, T2} = TypedArray{T1}(convert(Vector{T1}, v))
 
-Stipple.render(ta::TypedArray{T}) where T = LittleDict(:typedArray => T, :array => ta.array)
-Stipple.render(ta::TypedArray{T}) where T <: Int64 = LittleDict(:typedArray => T, :array => string.(ta.array))
-Stipple.render(ta::TypedArray{T}) where T <: UInt64 = LittleDict(:typedArray => T, :array => string.(reinterpret(Int64, ta.array)))
+Stipple.render(ta::TypedArray{T}) where T = LittleDict(:typedArray => T, :array => BASE64ENCODING[] ? base64encode(ta.array) : ta.array)
+Stipple.render(ta::TypedArray{T}) where T <: Int64 = LittleDict(:typedArray => T, :array => BASE64ENCODING[] ? base64encode(ta.array) : string.(ta.array))
+Stipple.render(ta::TypedArray{T}) where T <: UInt64 = LittleDict(:typedArray => T, :array => BASE64ENCODING[] ? base64encode(ta.array) : string.(reinterpret(Int64, ta.array)))
 
-Stipple.jsrender(ta::TypedArray{T}, args...) where T <: Real = JSONText("$(type_dict[T]).from($(json(ta.array)))")
-Stipple.jsrender(ta::TypedArray{T}, args...) where T <: UInt64 = JSONText("$(type_dict[T]).from($(json(string.(ta.array))))")
-Stipple.jsrender(ta::TypedArray{T}, args...) where T <: Int64 = JSONText("$(type_dict[T]).from($(json(string.(ta.array))))")
+Stipple.jsrender(ta::TypedArray{T}, args...) where T <: Real = JSONText("$(type_dict[T]).from($(json(BASE64ENCODING[] ? base64encode(ta.array) : ta.array)))")
+Stipple.jsrender(ta::TypedArray{T}, args...) where T <: UInt64 = JSONText("$(type_dict[T]).from($(json(BASE64ENCODING[] ? base64encode(ta.array) : string.(ta.array))))")
+Stipple.jsrender(ta::TypedArray{T}, args...) where T <: Int64 = JSONText("$(type_dict[T]).from($(json(BASE64ENCODING[] ? base64encode(ta.array) : string.(ta.array))))")
  
 Stipple.stipple_parse(::Type{TypedArray{T}}, v::Vector) where T = TypedArray(Vector{T}(v))
 
@@ -55,18 +59,19 @@ Stipple.stipple_parse(::Type{TypedArray{Int64}}, v::Vector{T}) where T <: Number
 js_revive_typedArray = """
     function (k, v) {
         if ( (typeof v==='object') && (v!=null) && (v.typedArray) ) {
+            const array = (typeof v.array === 'string') ? base64ToArrayBuffer(v.array) : v.array
             switch (v.typedArray) {
-                case 'UInt8':   a = Uint8Array.from(v.array); break
-                case 'UInt16':  a = Uint16Array.from(v.array); break
-                case 'UInt32':  a = Uint32Array.from(v.array); break
-                case 'UInt64':  a = BigUint64Array.from(v.array.map(BigInt)); break
-                case 'Int8':    a = Int8Array.from(v.array); break
-                case 'Int16':   a = Int16Array.from(v.array); break
-                case 'Int32':   a = Int32Array.from(v.array); break
-                case 'Int64':   a = BigInt64Array.from(v.array.map(BigInt)); break
-                case 'Float32': a = Float32Array.from(v.array); break
-                case 'Float64': a = Float64Array.from(v.array); break
-                default: a = v.array
+                case 'UInt8':   a = new Uint8Array(array); break
+                case 'UInt16':  a = new Uint16Array(array); break
+                case 'UInt32':  a = new Uint32Array(array); break
+                case 'UInt64':  a = new BigUint64Array(array.map(BigInt)); break
+                case 'Int8':    a = new Int8Array(array); break
+                case 'Int16':   a = new Int16Array(array); break
+                case 'Int32':   a = new Int32Array(array); break
+                case 'Int64':   a = new BigInt64Array(array.map(BigInt)); break
+                case 'Float32': a = new Float32Array(array); break
+                case 'Float64': a = new Float64Array(array); break
+                default: a = array
             }
             return a
         } else {
@@ -87,6 +92,15 @@ function deps()
             [
                 """
                 BigInt.prototype['toJSON'] = function () { return this.toString() }
+                
+                function base64ToArrayBuffer(base64) {
+                    var binaryString = atob(base64);
+                    var bytes = new Uint8Array(binaryString.length);
+                    for (var i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    return bytes.buffer;
+                }
                 """
             ]
         )
