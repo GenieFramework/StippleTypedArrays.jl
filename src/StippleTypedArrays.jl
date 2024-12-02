@@ -59,16 +59,20 @@ Stipple.stipple_parse(::Type{TypedArray{Int64}}, v::Vector{T}) where T <: Number
 js_revive_typedArray = """
     function (k, v) {
         if ( (typeof v==='object') && (v!=null) && (v.typedArray) ) {
-            const array = (typeof v.array === 'string') ? base64ToArrayBuffer(v.array) : v.array
+            const isBase64 = (typeof v.array === 'string')
+            const array = isBase64 ? base64ToArrayBuffer(v.array) : v.array
+            console.log(v.array)
+            console.log(array)
+
             switch (v.typedArray) {
                 case 'UInt8':   a = new Uint8Array(array); break
                 case 'UInt16':  a = new Uint16Array(array); break
                 case 'UInt32':  a = new Uint32Array(array); break
-                case 'UInt64':  a = new BigUint64Array(array.map(BigInt)); break
+                case 'UInt64':  a = new BigUint64Array(isBase64 ? array : array.map(BigInt)); break
                 case 'Int8':    a = new Int8Array(array); break
                 case 'Int16':   a = new Int16Array(array); break
                 case 'Int32':   a = new Int32Array(array); break
-                case 'Int64':   a = new BigInt64Array(array.map(BigInt)); break
+                case 'Int64':   a = new BigInt64Array(isBase64 ? array : array.map(BigInt)); break
                 case 'Float32': a = new Float32Array(array); break
                 case 'Float64': a = new Float64Array(array); break
                 default: a = array
