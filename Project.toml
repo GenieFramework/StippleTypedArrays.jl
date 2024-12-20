@@ -1,7 +1,7 @@
 name = "StippleTypedArrays"
 uuid = "304e07c4-4ffc-4adf-87bc-5a9afdf39ded"
 authors = ["Helmut Hänsel <helmut.haensel@merckgroup.com>"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -14,5 +14,5 @@ JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 StippleTypedArraysJSONExt = "JSON"
 
 [compat]
-Stipple = "0.27.23, 0.28, 0.29, 0.30"
+Stipple = "0.27.23, 0.28, 0.29, 0.30, 0.31"
 julia = "1.6"
